@@ -1,0 +1,5 @@
+[core]
+    autostage = true
+    remote = gs-bucket-1
+['remote "gs-bucket-1"']
+    url = gs://maulanaysfi-dvc-bucket-1/distilbert-sa

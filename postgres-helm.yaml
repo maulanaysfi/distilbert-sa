@@ -1,0 +1,35 @@
+auth:
+  postgresPassword: wazowski12344321
+  username: mlflow
+  password: aWJyYWhpbWFuYWtsYXV0Cg==
+  database: mlflow_db
+
+primary:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  initdb:
+    scripts:
+      preparation-mlflow-db.sql: |
+        \connect mlflow_db;
+        ALTER DATABASE mlflow_db OWNER TO mlflow;
+        ALTER SCHEMA public OWNER TO mlflow;
+
+        CREATE DATABASE mlflow_auth OWNER mlflow;
+        \connect mlflow_auth;
+        ALTER SCHEMA public OWNER TO mlflow;
+
+readReplicas:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+

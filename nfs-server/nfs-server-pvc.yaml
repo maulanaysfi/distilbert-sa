@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: nfs-system
+  finalizers:
+  - kubernetes.io/pvc-protection
+  labels:
+    app: nfs-server
+  name: nfs-provider-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard-rwo
+  volumeMode: Filesystem

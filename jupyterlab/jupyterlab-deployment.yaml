@@ -1,0 +1,195 @@
+---
+# Source: jupyterlab/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jupyterlab
+  labels:
+    app.kubernetes.io/name: jupyterlab
+    app.kubernetes.io/instance: jupyterlab
+    app.kubernetes.io/version: "1.16.0"
+stringData:
+  application-password: wazowski12344321
+---
+# Source: jupyterlab/templates/pvc.yaml
+kind: "PersistentVolumeClaim"
+apiVersion: "v1"
+metadata:
+  name: jupyterlab
+  labels:
+    app.kubernetes.io/name: jupyterlab
+    app.kubernetes.io/instance: jupyterlab
+    app.kubernetes.io/version: "1.16.0"
+spec:
+  storageClassName: nfs-server-sc
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 12Gi
+---
+# Source: jupyterlab/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: jupyterlab
+  labels:
+    app.kubernetes.io/name: jupyterlab
+    app.kubernetes.io/instance: jupyterlab
+    app.kubernetes.io/version: "1.16.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8888
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: jupyterlab
+    app.kubernetes.io/instance: jupyterlab
+---
+# Source: jupyterlab/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyterlab
+  labels:
+    app.kubernetes.io/name: jupyterlab
+    app.kubernetes.io/instance: jupyterlab
+    app.kubernetes.io/version: "1.16.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jupyterlab
+      app.kubernetes.io/instance: jupyterlab
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jupyterlab
+        app.kubernetes.io/instance: jupyterlab
+    spec:
+      securityContext:
+        {}
+      containers:
+        - name: jupyterlab
+          securityContext:
+            runAsUser: 0
+          image: "jupyter/scipy-notebook"
+          imagePullPolicy: IfNotPresent
+          workingDir: /home/jovyan
+          env:
+            - name: JUPYTER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: application-password
+                  name: jupyterlab
+            - name: JUPYTER_ENABLE_LAB
+              value: "yes"
+            - name: GRANT_SUDO
+              value: "yes"
+            - name: GIT_URL
+              value: 
+            - name: GIT_NAME
+              value: Maulana Yusuf
+            - name: GIT_EMAIL
+              value: maulanayusuf5579@gmail.com
+            - name: RELEASE_DATE
+              value: "2025-09-01 15:15:14.786629522 +0700 WIB m=+0.712566037"
+          ports:
+            - name: http
+              containerPort: 8888
+              protocol: TCP
+                #- name: ftp-control
+                #  containerPort: 21
+                #  protocol: TCP
+                #- name: ftp-data
+                #  containerPort: 20
+                #  protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15 
+            failureThreshold: 40
+            periodSeconds: 10
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15 
+            failureThreshold: 40
+            periodSeconds: 10
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: 500m
+              memory: 4Gi
+            limits:
+              cpu: 3500m
+              memory: 12Gi 
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: data
+              mountPath: /home/jovyan
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        - name: data
+          persistentVolumeClaim:
+            claimName: jupyterlab
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jupyterlab
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - jupyter.ibrahim5579.com
+    secretName: gke-tls-secret
+  rules:
+  - host: jupyter.ibrahim5579.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jupyterlab
+            port:
+              number: 8888
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/name: jupyterlab
+    app.kubernetes.io/instance: jupyterlab
+    app.kubernetes.io/version: "1.16.0"
+  name: jupyterlab-vpa
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: jupyterlab
+  updatePolicy:
+    updateMode: "Initial"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        controlledResources: ["cpu", "memory"]
+        minAllowed:
+          cpu: "100m"
+          memory: "256Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "8Gi"
+---
+

@@ -1,0 +1,64 @@
+tracking:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  auth:
+    username: mlflow-admin
+    password: wazowski12344321
+      #autoscaling:
+      #  hpa:
+      #    enabled: true
+      #    minReplicas: "1"
+      #    maxReplicas: "3"
+      #    targetCPU: "200"
+  persistence:
+    storageClass: nfs-server-sc
+    size: 8Gi
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: mlflow.ibrahim5579.com
+    path: /
+    pathType: Prefix
+    tls: true
+    extraTls:
+      - hosts:
+          - mlflow.ibrahim5579.com
+        secretName: gke-tls-secret
+run:
+  resources:
+    limits:
+      cpu: 250m
+      memory: 500Mi
+
+postgresql:
+  enabled: false
+
+minio:
+  enabled: false
+
+externalDatabase:
+  dialectDriver: postgresql
+  host: postgres-postgresql.default.svc.cluster.local
+  port: 5432
+  user: mlflow
+  password: aWJyYWhpbWFuYWtsYXV0Cg==
+  database: mlflow_db
+  authDatabase: mlflow_auth
+
+externalS3:
+  host: minio.default.svc.cluster.local
+  port: 9000
+  existingSecret: minio-credentials
+  existingSecretAccessKeyIDKey: MINIO_ACCESS_ID
+  existingSecretKeySecretKey: MINIO_ACCESS_KEY
+  protocol: http
+  bucket: mlflow-bucket
+

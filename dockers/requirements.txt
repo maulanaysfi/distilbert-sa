@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+dvc-gs
+pydantic
+torch
+transformers
