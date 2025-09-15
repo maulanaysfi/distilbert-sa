@@ -5,8 +5,8 @@ tracking:
       cpu: 100m
       memory: 256Mi
     limits:
-      cpu: 2
-      memory: 2Gi
+      cpu: 1
+      memory: 1Gi
   auth:
     username: mlflow-admin
     password: wazowski12344321
@@ -24,19 +24,19 @@ tracking:
   ingress:
     enabled: true
     ingressClassName: nginx
-    hostname: mlflow.ibrahim5579.com
+    hostname: mlflow.maulanaysfi.my.id
     path: /
     pathType: Prefix
     tls: true
     extraTls:
       - hosts:
-          - mlflow.ibrahim5579.com
+          - mlflow.maulanaysfi.my.id
         secretName: gke-tls-secret
 run:
   resources:
     limits:
-      cpu: 250m
-      memory: 500Mi
+      cpu: 50m
+      memory: 64Mi
 
 postgresql:
   enabled: false
