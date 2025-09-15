@@ -152,10 +152,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - jupyter.ibrahim5579.com
+    - jupyter.maulanaysfi.my.id
     secretName: gke-tls-secret
   rules:
-  - host: jupyter.ibrahim5579.com
+  - host: jupyter.maulanaysfi.my.id
     http:
       paths:
       - path: /

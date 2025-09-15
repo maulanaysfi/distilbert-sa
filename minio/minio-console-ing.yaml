@@ -8,10 +8,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - minio-console.ibrahim5579.com
+    - minio-console.maulanaysfi.my.id
     secretName: gke-tls-secret
   rules:
-  - host: minio-console.ibrahim5579.com
+  - host: minio-console.maulanaysfi.my.id
     http:
       paths:
       - path: /
