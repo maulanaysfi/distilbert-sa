@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mlflow-tracking-letsencrypt
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: mlflow.maulanaysfi.my.id
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mlflow-tracking
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - mlflow.maulanaysfi.my.id
+    secretName: mlflow-letsencrypt-tls
