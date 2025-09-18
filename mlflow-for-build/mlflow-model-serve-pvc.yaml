@@ -1,0 +1,15 @@
+# https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-model-serve-pvc
+  namespace: default
+  labels:
+    app: mlflow-model-serve-pvc
+spec:
+  storageClassName: nfs-server-sc
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

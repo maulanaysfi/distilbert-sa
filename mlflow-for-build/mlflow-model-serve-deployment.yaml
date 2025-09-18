@@ -1,0 +1,102 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-model-serve
+  namespace: default
+  labels:
+    app: mlflow-model-serve
+spec:
+  selector:
+    matchLabels:
+      app: mlflow-model-serve
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mlflow-model-serve
+    spec:
+      initContainers:
+      - name: setting-up-venv
+        image: "python:3.11-slim"
+        command: ["/bin/bash", "-c"]
+        args: 
+        - |
+          dir_name="/mnt/pyvenv"
+          if [ -d "$dir_name" ]; then
+              echo "Directory '$dir_name' already exists."
+          else
+              mkdir "$dir_name"
+              if [ $? -eq 0 ]; then
+                  echo "Successfully created directory '$dir_name'."
+              else
+                  echo "Error: Failed to create directory '$dir_name'."
+              fi
+          fi
+          python -m venv /mnt/pyvenv
+          echo '====================================='
+          echo '======== Done creating venv! ========'
+          echo '====================================='
+          echo '========= Installing Deps... ========'
+          echo '====================================='
+        volumeMounts:
+          - name: pyvenv-volume
+            mountPath: /mnt/pyvenv
+      - name: install-dependencies
+        image: "python:3.11-slim"
+        command: ["/bin/bash", "-c"]
+        args: 
+        - |
+          source /mnt/pyvenv/bin/activate
+          echo -n 'Which python: '; which python
+          echo -n 'Which pip: '; which pip
+          pip install mlflow torch transformers --no-cache-dir
+          echo '====================================='
+          echo '======= Done installing deps! ======='
+          echo '====================================='
+          echo '====== Pod set to sleep. Happy ======'
+          echo '============ serving ^=^ ============'
+          echo '====================================='
+        volumeMounts:
+          - name: pyvenv-volume
+            mountPath: /mnt/pyvenv
+      containers:
+      - name: mlflow
+        image: "python:3.11-slim"
+        command: ["/bin/bash", "-c"]
+        args: ["sleep infinity"]
+        env:
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-model-serve-credentials
+              key: mlflow_uri
+        - name: MLFLOW_TRACKING_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-model-serve-credentials
+              key: mlflow_auth_username
+        - name: MLFLOW_TRACKING_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-model-serve-credentials
+              key: mlflow_auth_password
+        resources:
+          limits:
+            cpu: 300m
+            memory: 600Mi
+          requests:
+            cpu: 30m
+            memory: 50Mi
+        ports:
+          - name: model-serve
+            containerPort: 5000
+            protocol: TCP
+        volumeMounts:
+          - name: pyvenv-volume
+            mountPath: /mnt/pyvenv
+      restartPolicy: Always
+      volumes:
+        - name: pyvenv-volume
+          persistentVolumeClaim:
+            claimName: mlflow-model-serve-pvc
