@@ -18,7 +18,7 @@ spec:
     spec:
       initContainers:
       - name: setting-up-venv
-        image: "python:3.11-slim"
+        image: "python:3.11-slim-trixie"
         command: ["/bin/bash", "-c"]
         args: 
         - |
@@ -43,28 +43,60 @@ spec:
           - name: pyvenv-volume
             mountPath: /mnt/pyvenv
       - name: install-dependencies
-        image: "python:3.11-slim"
+        image: "python:3.11-slim-trixie"
         command: ["/bin/bash", "-c"]
         args: 
         - |
           source /mnt/pyvenv/bin/activate
           echo -n 'Which python: '; which python
           echo -n 'Which pip: '; which pip
-          pip install mlflow torch transformers --no-cache-dir
+          pip install mlflow torch transformers virtualenv --no-cache-dir
           echo '====================================='
           echo '======= Done installing deps! ======='
           echo '====================================='
-          echo '====== Pod set to sleep. Happy ======'
-          echo '============ serving ^=^ ============'
+          echo '======== Installing pyenv... ========'
           echo '====================================='
         volumeMounts:
           - name: pyvenv-volume
             mountPath: /mnt/pyvenv
+      - name: install-pyenv
+        image: "python:3.11-slim-trixie"
+        command: ["/bin/bash", "-c"]
+        args: 
+        - |
+          echo 'Installing pyenv... (simple Python version management)'
+          apt update
+          apt install curl git -y
+          curl -fsSL https://pyenv.run | bash
+          echo '======================================'
+          echo '======= Done installing pyenv! ======='
+          echo '======================================'
+        volumeMounts:
+          - name: pyvenv-volume
+            mountPath: /mnt/pyvenv
+          - name: pyenv-volume
+            mountPath: /root
       containers:
       - name: mlflow
-        image: "python:3.11-slim"
+        image: "python:3.11-slim-trixie"
         command: ["/bin/bash", "-c"]
-        args: ["sleep infinity"]
+        args: 
+        - |
+          echo '======================================'
+          echo '===== Installing another deps... ====='
+          echo '======================================'
+          apt update
+          apt install curl wget build-essential -y
+          ln -sf /root/.pyenv/bin/pyenv /usr/local/bin/pyenv
+          source /mnt/pyvenv/bin/activate
+          echo -n 'Which python: '; which python
+          echo -n 'Which pip: '; which pip
+          echo '----- Load pyvenv manually before running mlflow models serve! -----'
+          echo '======================================'
+          echo '=============== Done! ================'
+          echo '========= Happy serving! ^=^ ========='
+          echo '======================================'
+          sleep infinity
         env:
         - name: MLFLOW_TRACKING_URI
           valueFrom:
@@ -83,8 +115,8 @@ spec:
               key: mlflow_auth_password
         resources:
           limits:
-            cpu: 300m
-            memory: 600Mi
+            cpu: 800m
+            memory: 1Gi
           requests:
             cpu: 30m
             memory: 50Mi
@@ -95,8 +127,12 @@ spec:
         volumeMounts:
           - name: pyvenv-volume
             mountPath: /mnt/pyvenv
+          - name: pyenv-volume
+            mountPath: /root
       restartPolicy: Always
       volumes:
         - name: pyvenv-volume
           persistentVolumeClaim:
             claimName: mlflow-model-serve-pvc
+        - name: pyenv-volume
+          emptyDir: {}
