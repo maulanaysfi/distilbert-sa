@@ -1,0 +1,94 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torch-serve
+  namespace: default
+  labels:
+    app: torch-serve
+spec:
+  selector:
+    matchLabels:
+      app: torch-serve
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: torch-serve
+    spec:
+      initContainers:
+      - name: retrieve-artifacts
+        image: "python:3.11-slim-trixie"
+        command: ["/bin/bash", "-c"]
+        args: 
+        - |
+          echo -n 'which python: '; which python
+          echo -n 'which pip: '; which pip
+          pip install mlflow --no-cache-dir
+          echo '====================================='
+          echo '====== Done installing MLflow! ======'
+          echo '====================================='
+          echo '===== Downloading artifacts.... ====='
+          echo '====================================='
+          echo -n 'MLflow registered model name: '; echo $MLFLOW_REGISTERED_MODEL_NAME
+          echo -n 'MLflow registered model alias: '; echo $MLFLOW_REGISTERED_MODEL_ALIAS
+          mlflow artifacts download -u models:/$MLFLOW_REGISTERED_MODEL_NAME@$MLFLOW_REGISTERED_MODEL_ALIAS -d /home/model-server/model-data
+          echo '====================================='
+          echo '======= Artifacts downloaded! ======='
+          echo '====================================='
+          echo 'artifacts stored at /home/model-server/model-data'
+        env:
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            secretKeyRef:
+              name: torch-serve-credentials
+              key: mlflow_uri
+        - name: MLFLOW_TRACKING_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: torch-serve-credentials
+              key: mlflow_auth_username
+        - name: MLFLOW_TRACKING_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: torch-serve-credentials
+              key: mlflow_auth_password
+        - name: MLFLOW_REGISTERED_MODEL_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: torch-serve-cm
+              key: mlflow_model_name
+        - name: MLFLOW_REGISTERED_MODEL_ALIAS
+          valueFrom:
+            configMapKeyRef:
+              name: torch-serve-cm
+              key: mlflow_model_alias
+        volumeMounts:
+          - name: model-data
+            mountPath: /home/model-server/model-data
+      containers:
+      - name: torch-serve
+        image: "pytorch/torchserve:latest-cpu"
+        command: ["/bin/bash", "-c"]
+        args: 
+        - |
+          sleep infinity
+        resources:
+          limits:
+            cpu: 200m
+            memory: 400Mi
+          requests:
+            cpu: 30m
+            memory: 50Mi
+        ports:
+          - name: model-serve
+            containerPort: 5000
+            protocol: TCP
+        volumeMounts:
+          - name: model-data
+            mountPath: /home/model-server/model-data
+      volumes:
+      - name: model-data
+        persistentVolumeClaim:
+          claimName: torch-serve-pvc
+      restartPolicy: Always

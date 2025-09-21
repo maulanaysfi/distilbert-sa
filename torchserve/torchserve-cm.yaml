@@ -1,0 +1,9 @@
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: torch-serve-cm
+  namespace: default
+data:
+  mlflow_model_name: distilbert-sentiment-analysis
+  mlflow_model_alias: champion
