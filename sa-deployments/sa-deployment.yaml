@@ -1,0 +1,88 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distilbert-sa
+  namespace: default
+  labels:
+    app: distilbert-sa
+spec:
+  selector:
+    matchLabels:
+      app: distilbert-sa
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: distilbert-sa
+    spec:
+      containers:
+      - name: model-server
+        image: maulanaysfi/distilbert-sa:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 200m
+            memory: 600Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+          periodSeconds: 10
+        ports:
+        - containerPort: 8000
+          name: model-api
+      restartPolicy: Always
+---
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: distilbert-sa-svc
+  namespace: default
+spec:
+  selector:
+    app: distilbert-sa
+  type: ClusterIP
+  ports:
+  - name: model-api
+    protocol: TCP
+    port: 80
+    targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-example-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+      - dev-model.maulanaysfi.my.id
+    secretName: dev-model-letsencrypt-tls
+  rules:
+  - host: dev-model.maulanaysfi.my.id
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: distilbert-sa-svc
+            port:
+              number: 80
+---
+
