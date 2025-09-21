@@ -10,28 +10,11 @@ tracking:
   auth:
     username: mlflow-admin
     password: wazowski12344321
-      #autoscaling:
-      #  hpa:
-      #    enabled: true
-      #    minReplicas: "1"
-      #    maxReplicas: "3"
-      #    targetCPU: "200"
   persistence:
     storageClass: nfs-server-sc
     size: 8Gi
   service:
     type: ClusterIP
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    hostname: mlflow.maulanaysfi.my.id
-    path: /
-    pathType: Prefix
-    tls: true
-    extraTls:
-      - hosts:
-          - mlflow.maulanaysfi.my.id
-        secretName: gke-tls-secret
 run:
   resources:
     limits:
@@ -60,5 +43,4 @@ externalS3:
   existingSecretAccessKeyIDKey: MINIO_ACCESS_ID
   existingSecretKeySecretKey: MINIO_ACCESS_KEY
   protocol: http
-  bucket: mlflow-bucket
-
+  bucket: mlflow
